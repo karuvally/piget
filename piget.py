@@ -28,20 +28,24 @@ def read_configuration_file(configuration_file_path):
 
 
 # create checksum for the remote files
-def create_remote_checksum(server, ssh_user, ssh_pass, file):
+def create_remote_checksum(configuration, current_file):
     # declare some essential variables
     remote_checksum = ""
     
     # initiate the connection
     ssh_connection = client.SSHClient()
     ssh_connection.set_missing_host_key_policy(client.AutoAddPolicy())
-    ssh_connection.connect(server, username=ssh_user, password=ssh_pass)
+    ssh_connection.connect(configuration['ssh_server'],
+    username=configuration['ssh_username'], password=configuration['ssh_password'])
     
     # execute the command, receive output
-    stdin, stdout, stderr = ssh_connection.exec_command(file)
+    stdin, stdout, stderr = ssh_connection.exec_command('md5sum ' + current_file)
     while not stdout.channel.exit_status_ready():
-        while stdout.channel.recv_ready():
+        if stdout.channel.recv_ready():
             remote_checksum += str(stdout.channel.recv(1024), 'utf8')
+    
+    # strip the checksum of unnecessary contents
+    remote_checksum = remote_checksum.split(' ')[0] #debug
     
     # close connection and return checksum
     ssh_connection.close()
@@ -68,12 +72,21 @@ def retrieve_files(ftp_connection, configuration, current_file_path):
         if(file_dictionary[file]) == 'd':
             os.mkdir(file)
             os.chdir(file)
-            retrieve_files(ftp_connection, configuration, file)
+            current_file_path += '/' + file
+            retrieve_files(ftp_connection, configuration, current_file_path)
         else:
-            ftp_connection.retrbinary('RETR ' + file, open(file, 'wb').write)
+            # do the checksum thing here
+            ftp_connection.retrbinary('RETR ' + file, open(file, 'wb').write) #debug
+            
+        #delete original files
+        if configuration['delete_files'] == 'enabled':
+            try:
+                ftp_connection.delete(file)
+            except Exception:
+                ftp_connection.rmd(file)
     
     # move one level up the file system
-    ftp_connection.cwd('..') # debug
+    ftp_connection.cwd('..')
     os.chdir('..')
 
 
@@ -89,6 +102,8 @@ def main():
     
     # retrieve files and quit
     retrieve_files(ftp_connection, configuration, configuration['remote_file_path'])
+    
+    # close the ftp connection
     ftp_connection.quit()
 
 

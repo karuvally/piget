@@ -12,5 +12,5 @@ This is very handy, as it will automatically move the remote directory,
 containing surveillance footage to my workstation.
 
 ## Why not just use wget and cron? 
-Piget allows me to do checksum for each file, making sure it is not
+Piget will eventually allow me to do checksum for each file, making sure it is not
 faulty before deleting the originals. Also, creating this was a fun experience
