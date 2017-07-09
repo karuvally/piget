@@ -4,7 +4,6 @@
 
 # import some serious stuff
 from ftplib import FTP
-from paramiko import client
 import os
 
 
@@ -25,31 +24,6 @@ def read_configuration_file(configuration_file_path):
     # close file and return data
     configuration_file.close()
     return configuration_dictionary
-
-
-# create checksum for the remote files
-def create_remote_checksum(configuration, current_file):
-    # declare some essential variables
-    remote_checksum = ""
-    
-    # initiate the connection
-    ssh_connection = client.SSHClient()
-    ssh_connection.set_missing_host_key_policy(client.AutoAddPolicy())
-    ssh_connection.connect(configuration['ssh_server'],
-    username=configuration['ssh_username'], password=configuration['ssh_password'])
-    
-    # execute the command, receive output
-    stdin, stdout, stderr = ssh_connection.exec_command('md5sum ' + current_file)
-    while not stdout.channel.exit_status_ready():
-        if stdout.channel.recv_ready():
-            remote_checksum += str(stdout.channel.recv(1024), 'utf8')
-    
-    # strip the checksum of unnecessary contents
-    remote_checksum = remote_checksum.split(' ')[0] #debug
-    
-    # close connection and return checksum
-    ssh_connection.close()
-    return remote_checksum
 
 
 # the function where stuff happens
